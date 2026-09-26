@@ -7,13 +7,16 @@ Stromformat echt.
 from __future__ import annotations
 
 import asyncio
+import time
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from typing import Any
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.models import LibraryArtist, MusicRequest, utcnow
@@ -185,6 +188,81 @@ def test_the_owner_can_send_an_open_one_again_by_hand(
     response = admin_client.post(f"/api/admin/requests/{request['id']}/retry")
     assert response.status_code == 200, response.text
     assert response.json()["status"] == "searching"
+
+
+def _slow_nexcrate(fake: FakeNexcrate, seconds: float) -> list[str]:
+    """nexcrate nimmt Anfragen erst nach ``seconds`` an. Die Liste fuellt sich, sobald eine ankommt."""
+    started: list[str] = []
+
+    async def handle(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path == "/api/v1/requests":
+            started.append(request.url.path)
+            await asyncio.sleep(seconds)
+        return fake.handle(request)
+
+    http.use_transport(httpx.MockTransport(handle))
+    return started
+
+
+def _until(check: Any, seconds: float = 5.0) -> None:
+    deadline = time.monotonic() + seconds
+    while not check():
+        assert time.monotonic() < deadline, "gave up waiting"
+        time.sleep(0.02)
+
+
+def test_a_slow_nexcrate_does_not_hold_the_request(
+    admin_client: TestClient, fake_nexcrate: FakeNexcrate, release_groups, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # 25.09.2026: nexcrate brauchte 90 Sekunden, der Proxy davor brach nach 60 mit 504 ab. Die Anfrage kam
+    # trotzdem an, der Nutzer hielt sie fuer gescheitert. Jetzt geht die Uebergabe im Hintergrund weiter.
+    monkeypatch.setattr(requests_service, "HANDOVER_WAIT", 0.05, raising=False)
+    _slow_nexcrate(fake_nexcrate, 0.5)
+    create_user("lena")
+    request = _request(admin_client, auth_headers(admin_client, "lena")).json()["request"]
+    assert (request["status"], request["error_code"]) == ("approved", "nexcrate_pending")
+    assert fake_nexcrate.requests_sent() == []
+    _until(lambda: _stored(request["id"]).status.value == "searching")
+    assert _stored(request["id"]).error_code == ""
+    assert len(fake_nexcrate.requests_sent()) == 1
+
+
+def test_no_second_hand_over_while_the_first_is_under_way(
+    admin_client: TestClient, fake_nexcrate: FakeNexcrate, release_groups, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # 25.09.2026: Der Abgleich sah nach einer Minute "noch nicht bestaetigt" und sendete dieselbe Anfrage ein
+    # zweites Mal, waehrend die erste noch lief. Die zweite bekam 500 und stellte die angenommene zurueck.
+    monkeypatch.setattr(requests_service, "HANDOVER_WAIT", 0.05, raising=False)
+    started = _slow_nexcrate(fake_nexcrate, 0.5)
+    create_user("lena")
+    headers = auth_headers(admin_client, "lena")
+    with ThreadPoolExecutor(1) as pool:
+        posted = pool.submit(_request, admin_client, headers)
+        _until(lambda: len(started) == 1)
+        assert _refresh(utcnow() + timedelta(minutes=2)) == 0
+        request_id = posted.result().json()["request"]["id"]
+    _until(lambda: _stored(request_id).status.value == "searching")
+    assert len(started) == 1
+
+
+def test_sending_again_by_hand_waits_for_a_hand_over_under_way(
+    admin_client: TestClient, fake_nexcrate: FakeNexcrate, release_groups, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(requests_service, "HANDOVER_WAIT", 0.05, raising=False)
+    started = _slow_nexcrate(fake_nexcrate, 0.5)
+    create_user("lena")
+    headers = auth_headers(admin_client, "lena")
+    with ThreadPoolExecutor(1) as pool:
+        posted = pool.submit(_request, admin_client, headers)
+        _until(lambda: len(started) == 1)
+        with SessionLocal() as db:
+            request_id = db.scalars(select(MusicRequest.id)).one()
+        response = admin_client.post(f"/api/admin/requests/{request_id}/retry")
+        assert response.status_code == 200, response.text
+        posted.result()
+    _until(lambda: _stored(request_id).status.value == "searching")
+    # Gezaehlt, was bei nexcrate ankam, nicht was schon beantwortet ist.
+    assert len(started) == 1
 
 
 def test_no_music_version_fails_and_does_not_count(

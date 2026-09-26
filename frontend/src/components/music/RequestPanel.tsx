@@ -6,6 +6,7 @@ import { api, errorMessage, storedError } from '../../api/client'
 import type { AlbumPageData, CreatedRequest } from '../../api/types'
 import { useAuth } from '../../auth/useAuth'
 import { formatDate } from '../../lib/format'
+import { handingOver } from '../../lib/requests'
 import { Symbol } from '../Symbol'
 import { Button, Card, ErrorBanner } from '../ui'
 import { useTarget } from '../../lib/target'
@@ -54,6 +55,7 @@ export function RequestPanel({ data }: { data: AlbumPageData }) {
     const waiting = request.status === 'pending_approval'
     const dryRun = request.error_code === 'dry_run'
     const failed = request.status === 'failed'
+    const handing = handingOver(request)
     const progress = Math.max(library?.percent ?? 0, request.progress)
     body = (
       <div className="flex flex-col gap-3">
@@ -68,7 +70,7 @@ export function RequestPanel({ data }: { data: AlbumPageData }) {
           </span>
           <div>
             <p className="font-semibold">
-              {waiting ? t('request.waiting') : dryRun ? t('request.dryRunSent', { target }) : failed ? t('request.failed') : t('request.searching', { target })}
+              {waiting ? t('request.waiting') : dryRun ? t('request.dryRunSent', { target }) : failed ? t('request.failed') : handing ? t('request.handingOver', { target }) : t('request.searching', { target })}
             </p>
             <p className="mt-0.5 text-sm text-mist-500">
               {request.mine ? t('request.byYou') : t('request.bySomeone')}

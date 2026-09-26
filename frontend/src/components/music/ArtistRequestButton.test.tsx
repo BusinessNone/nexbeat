@@ -82,6 +82,12 @@ describe('whole artist request', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
+  it('says the request is being handed over while nexcrate has not confirmed it', () => {
+    // 25.09.2026: nexcrate brauchte 90 Sekunden, der Proxy meldete 504, obwohl die Anfrage ankam.
+    show(page({ request: { id: 7, status: 'approved', mine: true, progress: 0, error_code: 'nexcrate_pending' } }))
+    expect(screen.getByText(i18n.t('requestStatus.handing_over'))).toBeInTheDocument()
+  })
+
   it('says why a whole artist cannot be requested instead of offering the button', () => {
     // 12.09.2026: Mit einem weiten Metadatenprofil brachte "Ganzer Kuenstler" weit ueber tausend Alben nach Lidarr.
     show(page({ blocked: 'profile_not_studio_only' }))

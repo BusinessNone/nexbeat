@@ -1,4 +1,5 @@
 import type { LibraryState, RequestState } from '../../api/types'
+import { handingOver } from '../../lib/requests'
 
 export type Tone = 'ok' | 'warn' | 'bad' | 'accent' | 'muted'
 
@@ -13,6 +14,7 @@ export function statusOf(
   if (request) {
     if (request.status === 'pending_approval') return { key: 'status.pendingApproval', tone: 'warn' }
     if (request.status === 'approved' && request.error_code === 'dry_run') return { key: 'status.dryRun', tone: 'warn' }
+    if (handingOver(request)) return { key: 'status.handingOver', tone: 'accent' }
     if (request.status === 'approved' || request.status === 'searching') return { key: 'status.searching', tone: 'accent' }
   }
   if (library?.state === 'wanted') return { key: 'status.wanted', tone: 'accent' }

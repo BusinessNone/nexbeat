@@ -214,12 +214,14 @@
     "pendingApproval": "Wartet auf Freigabe",
     "dryRun": "Probelauf",
     "searching": "Wird gesucht",
+    "handingOver": "Wird übergeben",
     "wanted": "Gesucht"
   },
   "requestStatus": {
     "pending_approval": "Wartet auf Freigabe",
     "approved": "Freigegeben",
     "searching": "Wird gesucht",
+    "handing_over": "Wird übergeben",
     "downloaded": "Geladen",
     "rejected": "Abgelehnt",
     "failed": "Fehlgeschlagen",
@@ -234,6 +236,7 @@
     "dryRunSent": "Probelauf: nicht an {{target}} gesendet",
     "failed": "Anfrage fehlgeschlagen",
     "searching": "{{target}} sucht",
+    "handingOver": "Angefragt, wird an {{target}} übergeben",
     "byYou": "Von dir angefragt",
     "bySomeone": "Schon von jemandem angefragt",
     "progress": "{{percent}} % der Titel da",

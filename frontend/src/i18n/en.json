@@ -214,12 +214,14 @@
     "pendingApproval": "Awaiting approval",
     "dryRun": "Dry run",
     "searching": "Searching",
+    "handingOver": "Handing over",
     "wanted": "Wanted"
   },
   "requestStatus": {
     "pending_approval": "Awaiting approval",
     "approved": "Approved",
     "searching": "Searching",
+    "handing_over": "Handing over",
     "downloaded": "Downloaded",
     "rejected": "Rejected",
     "failed": "Failed",
@@ -234,6 +236,7 @@
     "dryRunSent": "Dry run: not sent to {{target}}",
     "failed": "Request failed",
     "searching": "{{target}} is searching",
+    "handingOver": "Requested, handing over to {{target}}",
     "byYou": "Requested by you",
     "bySomeone": "Already requested by someone",
     "progress": "{{percent}} % of the tracks are there",

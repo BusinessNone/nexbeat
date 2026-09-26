@@ -39,10 +39,13 @@ ueberlastet) laesst die Anfrage deshalb "freigegeben" stehen, und der naechste A
 sendet sie einfach noch einmal. Den Stand liest der Abgleich im Stapel ueber
 ``titles/lookup``. Nachsuchen wie bei Lidarr gibt es nicht: nexcrates Suchwunsch bleibt
 stehen, bis gesucht ist, auch bei ausgeschalteter Automatik.
+Die Uebergabe laeuft als eigene Aufgabe. Die Oberflaeche wartet hoechstens ``HANDOVER_WAIT`` darauf und zeigt
+danach "wird uebergeben"; solange sie laeuft, geht dieselbe Anfrage nicht noch einmal los.
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -50,6 +53,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..db import SessionLocal
 from ..models import ALBUM_KIND, ARTIST_KIND, OPEN_STATUSES, MusicRequest, RequestStatus, User, utcnow
 from . import catalog, coverart, library, lidarr, nexcrate, quota
 from .musicbrainz import MusicBrainzError
@@ -78,6 +82,21 @@ NEXCRATE_RESEND_CODES = (
 #: waehrend der ersten Uebergabe los, sah ``nexcrate_pending`` und sendete dieselbe Anfrage 0,7 s spaeter ein
 #: zweites Mal. nexcrate nahm sie idempotent, harmlos, aber nicht gewollt.
 NEXCRATE_RESEND_AFTER = timedelta(seconds=60)
+#: So viele Sekunden wartet eine Anfrage aus der Oberflaeche auf nexcrate, danach laeuft die Uebergabe im
+#: Hintergrund weiter und die Anfrage steht als "wird uebergeben" da. 25.09.2026: nexcrate brauchte 90 Sekunden,
+#: der Proxy davor brach nach 60 mit 504 ab, und der Nutzer hielt die angekommene Anfrage fuer gescheitert.
+HANDOVER_WAIT = 10.0
+
+#: Uebergaben an nexcrate, die gerade laufen, nach Nummer der Anfrage. Solange eine laeuft, geht dieselbe Anfrage
+#: nicht noch einmal los. 25.09.2026: Der Abgleich sendete sie nach einer Minute ein zweites Mal, die zweite bekam
+#: 500 und stellte die angenommene zurueck auf "noch nicht bestaetigt".
+_handovers: dict[int, asyncio.Task[None]] = {}
+
+
+def handing_over(request_id: int) -> bool:
+    """Laeuft fuer diese Anfrage gerade eine Uebergabe an nexcrate?"""
+    task = _handovers.get(request_id)
+    return task is not None and not task.done()
 
 
 class RequestProblem(Exception):
@@ -250,7 +269,8 @@ def _fail(db: Session, request: MusicRequest, code: str, message: str) -> None:
     logger.warning("Request %s failed: %s", request.id, code)
 
 
-async def submit(db: Session, settings: AppSettings, request: MusicRequest) -> None:
+async def submit(db: Session, settings: AppSettings, request: MusicRequest, *, patient: bool = False) -> None:
+    """Die Anfrage an das Ziel. Im NEX-Modus wartet nur ``patient`` die Antwort von nexcrate ganz ab."""
     request.submitted_at = utcnow()
     if not settings.requests_ready:
         _fail(db, request, "requests_not_ready", "No target for requests is configured.")
@@ -263,7 +283,7 @@ async def submit(db: Session, settings: AppSettings, request: MusicRequest) -> N
         logger.info("Dry run: request %s was not sent", request.id)
         return
     if settings.mode == "nex":
-        await _submit_to_nexcrate(db, settings, request)
+        await _submit_to_nexcrate(db, settings, request, None if patient else HANDOVER_WAIT)
         return
     client = lidarr.client_for(settings)
     if client is None:
@@ -294,8 +314,13 @@ async def submit(db: Session, settings: AppSettings, request: MusicRequest) -> N
     logger.info("Request %s handed to Lidarr", request.id)
 
 
-async def _submit_to_nexcrate(db: Session, settings: AppSettings, request: MusicRequest) -> None:
-    """Die Anfrage an nexcrate. Idempotent dort, also darf sie jederzeit noch einmal gehen."""
+async def _submit_to_nexcrate(db: Session, settings: AppSettings, request: MusicRequest, wait: float | None) -> None:
+    """Die Anfrage an nexcrate. Idempotent dort, also darf sie jederzeit noch einmal gehen.
+
+    Die Uebergabe laeuft als eigene Aufgabe mit eigener Sitzung. Antwortet nexcrate nicht binnen ``wait``
+    Sekunden, kehrt der Aufruf zurueck, die Anfrage bleibt "freigegeben" mit ``nexcrate_pending``, und die
+    Aufgabe traegt das Ergebnis nach, sobald nexcrate antwortet.
+    """
     client = nexcrate.client_for(settings)
     if client is None:
         _fail(db, request, "requests_not_ready", "nexcrate is not connected.")
@@ -312,9 +337,42 @@ async def _submit_to_nexcrate(db: Session, settings: AppSettings, request: Music
     }
     if whole_artist:
         body["artist"] = dict(nexcrate.WHOLE_ARTIST)
+    request_id = request.id
+    task = asyncio.create_task(_hand_over(client, request_id, body))
+    _handovers[request_id] = task
+
+    def _forget(done: asyncio.Task[None]) -> None:
+        if _handovers.get(request_id) is done:
+            del _handovers[request_id]
+
+    task.add_done_callback(_forget)
     try:
-        answer = await client.request(body)
-    except nexcrate.NexcrateError as error:
+        await asyncio.wait_for(asyncio.shield(task), wait)
+    except TimeoutError:
+        logger.info("Request %s: nexcrate is slow, the hand-over goes on in the background", request_id)
+        return
+    db.refresh(request)
+
+
+async def _hand_over(client: nexcrate.NexcrateClient, request_id: int, body: dict[str, Any]) -> None:
+    try:
+        try:
+            answer, failure = await client.request(body), None
+        except nexcrate.NexcrateError as error:
+            answer, failure = {}, error
+        with SessionLocal() as db:
+            request = db.get(MusicRequest, request_id)
+            if request is not None:
+                _record_hand_over(db, request, answer, failure)
+    except Exception:
+        # Die Anfrage bleibt "nexcrate_pending", der Abgleich sendet sie nach einer Minute noch einmal.
+        logger.exception("Request %s: the hand-over to nexcrate broke off", request_id)
+
+
+def _record_hand_over(
+    db: Session, request: MusicRequest, answer: dict[str, Any], error: nexcrate.NexcrateError | None
+) -> None:
+    if error is not None:
         if error.transient:
             request.status = RequestStatus.approved
             request.error_code = error.code if error.code in NEXCRATE_RESEND_CODES else "nexcrate_pending"
@@ -509,6 +567,9 @@ def cancel(db: Session, user: User, request: MusicRequest) -> None:
 
 
 async def retry(db: Session, settings: AppSettings, request: MusicRequest) -> None:
+    if handing_over(request.id):
+        # Die Uebergabe laeuft noch und traegt ihr Ergebnis selbst ein. Noch einmal senden hiesse doppelt.
+        return
     unsent = request.status == RequestStatus.approved and (
         request.error_code == "dry_run"
         # nexcrate nimmt Anfragen idempotent an: noch einmal senden schadet nie.
@@ -729,9 +790,12 @@ async def _refresh_nexcrate(db: Session, settings: AppSettings, now: datetime) -
             continue
         if request.submitted_at is not None and now - request.submitted_at < NEXCRATE_RESEND_AFTER:
             continue
+        if handing_over(request.id):
+            continue
         before = (request.status, request.error_code)
         logger.info("Request %s: sending to nexcrate again", request.id)
-        await submit(db, settings, request)
+        # Der Abgleich laeuft selbst im Hintergrund und wartet die Antwort ab.
+        await submit(db, settings, request, patient=True)
         changed += int((request.status, request.error_code) != before)
         if request.error_code in ("nexcrate_unreachable", "nexcrate_timeout"):
             # Nicht erreichbar: die uebrigen nicht auch noch einzeln anlaufen lassen.
@@ -745,7 +809,7 @@ async def _refresh_nexcrate(db: Session, settings: AppSettings, now: datetime) -
         for request in moved:
             logger.info("Request %s: handing it to nexcrate after the switch", request.id)
             request.status = RequestStatus.approved
-            await submit(db, settings, request)
+            await submit(db, settings, request, patient=True)
             changed += 1
         following = [request for request in following if request.status == RequestStatus.searching]
     items = [
