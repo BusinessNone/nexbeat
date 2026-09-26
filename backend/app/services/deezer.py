@@ -4,8 +4,9 @@
 Entwicklerportal vergibt seit etwa Mitte 2025 keine Tokens mehr. Deshalb ist
 Deezer in den Einstellungen abschaltbar, und nichts in nexbeat haengt davon ab.
 
-Die Zuordnung zu MusicBrainz laeuft nur ueber Namen. Gezaehlt werden deshalb nur
-exakte Treffer. Ein falsches Bild ist schlimmer als gar keins.
+Deezer kennt keine MusicBrainz-Kennungen. Die Zuordnung laeuft ueber den Verweis auf die
+Deezer-Seite, den MusicBrainz bei vielen Kuenstlern fuehrt (``catalog.deezer_artist_for``), sonst
+ueber den Namen. Gezaehlt werden dann nur exakte Treffer. Ein falsches Bild ist schlimmer als gar keins.
 
 ⚠️ Viele Anfragen auf einmal lehnt Deezer ab. Gemessen am 11.09.2026: Beim ersten
 Aufbau der Startseite kamen binnen 0,7 Sekunden 15 Ablehnungen mit "Quota limit
@@ -38,7 +39,11 @@ class DeezerError(Exception):
         self.code = code
 
 
-async def _get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+#: Deezers Kennung fuer "gibt es nicht", etwa ein Kuenstler, den Deezer entfernt hat.
+NO_DATA = 800
+
+
+async def _get(path: str, params: dict[str, Any] | None = None, *, missing_ok: bool = False) -> dict[str, Any]:
     await spacer.wait()
     try:
         response = await http.client("deezer").get(f"{BASE_URL}{path}", params=params)
@@ -52,6 +57,8 @@ async def _get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any
         raise DeezerError() from error
     # Deezer meldet Fehler mit Status 200 und einem ``error``-Feld.
     if isinstance(data, dict) and data.get("error"):
+        if missing_ok and (data["error"] or {}).get("code") == NO_DATA:
+            return {}
         logger.info("Deezer refused %s: %s", path, data.get("error"))
         raise DeezerError()
     return data if isinstance(data, dict) else {}
@@ -69,12 +76,26 @@ async def find_artist(name: str) -> dict[str, Any]:
     matches = [item for item in data.get("data") or [] if normalize(item.get("name", "")) == wanted]
     if not wanted or not matches:
         return {}
-    best = max(matches, key=lambda item: int(item.get("nb_fan") or 0))
+    return _artist(max(matches, key=lambda item: int(item.get("nb_fan") or 0)))
+
+
+async def artist(artist_id: int) -> dict[str, Any]:
+    """Ein Kuenstler nach seiner Deezer-Nummer. Leer, wenn Deezer ihn nicht (mehr) kennt."""
+    data = await _get(f"/artist/{artist_id}", missing_ok=True)
+    return _artist(data) if data.get("id") else {}
+
+
+def artist_url(artist_id: int) -> str:
+    """Die Adresse der Deezer-Seite, wie MusicBrainz sie speichert."""
+    return f"https://www.deezer.com/artist/{artist_id}"
+
+
+def _artist(item: dict[str, Any]) -> dict[str, Any]:
     return {
-        "id": best.get("id"),
-        "name": best.get("name", ""),
-        "picture": best.get("picture_xl") or best.get("picture_big") or "",
-        "fans": int(best.get("nb_fan") or 0),
+        "id": item.get("id"),
+        "name": item.get("name", ""),
+        "picture": item.get("picture_xl") or item.get("picture_big") or "",
+        "fans": int(item.get("nb_fan") or 0),
     }
 
 

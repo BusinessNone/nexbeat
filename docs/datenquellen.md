@@ -80,7 +80,16 @@ Tokenlos erreichbar, rechtlich Grauzone: Das Entwicklerportal vergibt seit etwa
 Mitte 2025 keine Tokens mehr. Deshalb abschaltbar halten.
 
 - `GET https://api.deezer.com/search/artist?q=<name>`: `id`, `name`, `nb_fan`,
-  `picture_xl` u. a. Zuordnung zu MusicBrainz nur ueber den Namen.
+  `picture_xl` u. a. Kennt keine MusicBrainz-Kennungen.
+  ⚠️ Namen sind nicht eindeutig. Gemessen am 26.09.2026: Die Suche nach "Logic" ergab fuenf
+  Kuenstler genau dieses Namens, MusicBrainz fuehrt ueber zehn.
+- Zuordnung ueber MusicBrainz, gemessen am 26.09.2026: `GET /ws/2/artist/<mbid>?inc=url-rels`
+  fuehrt bei vielen Kuenstlern einen Verweis vom Typ `free streaming` auf
+  `https://www.deezer.com/artist/<id>`, beim bekannten US-Rapper Logic etwa, bei einem britischen
+  Namensvetter keinen. Rueckwaerts: `GET /ws/2/url?resource=<adresse>&inc=artist-rels` nennt den
+  Kuenstler, bei dem die Adresse steht, `404` wenn bei keinem.
+- `GET /artist/<id>`: dieselben Felder wie die Suche. Eine unbekannte Nummer antwortet `200` mit
+  `{"error": {"type": "DataException", "message": "no data", "code": 800}}`.
 - `GET /artist/<id>/related`: aehnliche Kuenstler mit Bildern.
 - `GET /artist/<id>/top`: Titel mit `preview` (30 s) und `explicit_lyrics`.
 - `GET /artist/<id>/albums?limit=100`: `title`, `record_type`

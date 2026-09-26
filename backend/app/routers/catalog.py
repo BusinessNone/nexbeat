@@ -110,10 +110,13 @@ async def artist_similar(mbid: str, user: CurrentUser, db: DbSession) -> dict[st
 async def artist_top_tracks(
     mbid: str, user: CurrentUser, db: DbSession, name: str = Query(default="", max_length=200)
 ) -> dict[str, Any]:
+    # ``name`` bleibt erlaubt, zaehlt aber nicht mehr: Der Name entscheidet nicht, wer es ist.
     try:
-        return await catalog.artist_top_tracks(db, load_settings(db), _mbid(mbid), name)
+        return await catalog.artist_top_tracks(db, load_settings(db), _mbid(mbid))
     except DeezerError as error:
         raise _source_problem(error) from error
+    except MusicBrainzError as error:
+        raise _musicbrainz_problem(error) from error
 
 
 @router.get("/api/albums/{mbid}", summary="Album page: tracks, previews, library and request state")
@@ -125,7 +128,9 @@ async def album_page(mbid: str, user: CurrentUser, db: DbSession) -> dict[str, A
 
 
 @router.get("/api/images/artist/{mbid}", include_in_schema=False)
-async def artist_image(mbid: str, db: DbSession, name: str = Query(default="", max_length=200)) -> Response:
+async def artist_image(
+    mbid: str, db: DbSession, name: str = Query(default="", max_length=200), namesakes: bool = False
+) -> Response:
     """Leitet auf das Kuenstlerbild weiter.
 
     ⚠️ Ohne Anmeldung erreichbar, weil ``<img>`` keinen Authorization-Kopf
@@ -137,7 +142,7 @@ async def artist_image(mbid: str, db: DbSession, name: str = Query(default="", m
     """
     if not catalog.valid_mbid(mbid):
         return Response(status_code=404)
-    url = await catalog.resolve_artist_image(db, load_settings(db), mbid, name)
+    url = await catalog.resolve_artist_image(db, load_settings(db), mbid, name, namesakes=namesakes)
     if url is None:
         return Response(status_code=404, headers={"Cache-Control": "no-store"})
     if not url:

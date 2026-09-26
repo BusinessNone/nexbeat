@@ -31,6 +31,9 @@ RELEASE_TYPES = "album|ep|single"
 #: kamen ohne den Filter 48 Alben, mit ihm 23. Weg waren inoffizielle wie eine Beta-Fassung.
 OFFICIAL_ONLY = {"release-group-status": "website-default"}
 _LUCENE_SPECIAL = re.compile(r'([+\-&|!(){}\[\]^"~*?:\\/])')
+#: Verweis eines Kuenstlers auf seine Deezer-Seite. Gemessen am 26.09.2026: MusicBrainz speichert ihn als
+#: ``https://www.deezer.com/artist/<nummer>`` mit dem Typ ``free streaming``.
+_DEEZER_ARTIST = re.compile(r"^https?://(?:www\.)?deezer\.com/(?:[a-z]{2}/)?artist/(\d+)/?$")
 
 
 class MusicBrainzError(Exception):
@@ -154,8 +157,16 @@ async def artists_by_tag(tag: str, limit: int = 100) -> list[dict[str, Any]]:
     ]
 
 
+def _deezer_id(entity: dict[str, Any]) -> int | None:
+    for relation in entity.get("relations") or []:
+        match = _DEEZER_ARTIST.match((relation.get("url") or {}).get("resource") or "")
+        if match:
+            return int(match.group(1))
+    return None
+
+
 async def artist(mbid: str) -> dict[str, Any]:
-    data = await _get(f"/artist/{mbid}", {"inc": "genres tags"})
+    data = await _get(f"/artist/{mbid}", {"inc": "genres tags url-rels"})
     life = data.get("life-span") or {}
     return {
         "mbid": data.get("id", mbid),
@@ -166,7 +177,21 @@ async def artist(mbid: str) -> dict[str, Any]:
         "begin": life.get("begin") or "",
         "end": life.get("end") or "",
         "tags": _tags(data),
+        "deezer_id": _deezer_id(data),
     }
+
+
+async def url_artists(resource: str) -> list[str]:
+    """Die Kuenstler, bei denen MusicBrainz diese Adresse eingetragen hat. Leer, wenn bei keinem."""
+    try:
+        data = await _get("/url", {"resource": resource, "inc": "artist-rels"})
+    except MusicBrainzError as error:
+        if error.code == "musicbrainz_not_found":
+            return []
+        raise
+    return [
+        relation["artist"]["id"] for relation in data.get("relations") or [] if (relation.get("artist") or {}).get("id")
+    ]
 
 
 async def release_groups(artist_mbid: str, max_pages: int = 5) -> list[dict[str, Any]]:

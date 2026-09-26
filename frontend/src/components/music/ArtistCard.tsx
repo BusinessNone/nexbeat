@@ -12,6 +12,9 @@ export function ArtistCard({ artist, size = 'md' }: { artist: ArtistItem; size?:
   const { t } = useTranslation()
   const width = size === 'lg' ? 'w-40 sm:w-44' : 'w-32 sm:w-36'
   const reasons = artist.reasons ?? []
+  // Gleichnamige Kuenstler in der Suche: Land und Beschreibung aus MusicBrainz unterscheiden sie.
+  // 25.09.2026: Die Suche nach "logic" zeigte zwoelf gleiche Karten.
+  const detail = artist.namesakes ? [artist.country, artist.disambiguation].filter(Boolean).join(' · ') : ''
   return (
     <Link
       to={`/kuenstler/${artist.mbid}`}
@@ -33,6 +36,7 @@ export function ArtistCard({ artist, size = 'md' }: { artist: ArtistItem; size?:
       </div>
       <div className="w-full min-w-0">
         <p className="truncate text-sm font-semibold text-mist-100 group-hover:text-accent-400">{artist.name}</p>
+        {detail && <p className="mt-0.5 line-clamp-2 text-xs text-mist-500">{detail}</p>}
         {reasons.length > 0 && (
           <p className="mt-0.5 line-clamp-2 text-xs text-mist-500">{t('discover.likeReason', { names: reasons.join(t('common.and')) })}</p>
         )}

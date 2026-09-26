@@ -57,6 +57,9 @@ def _sources(*, browse_status: int = 200, popularity_status: int = 200) -> tuple
             return httpx.Response(200, json=[{"artist_mbid": SIMILAR, "name": "Similar Band", "score": 10, "reference_mbid": ARTIST}])
         if host == "api.deezer.com" and path == "/search/artist":
             return httpx.Response(200, json={"data": [{"id": 5, "name": "Test Artist", "nb_fan": 1, "picture_xl": "https://img.example.com/a.jpg"}]})
+        if host == "musicbrainz.org" and path == "/ws/2/url":
+            # Die Deezer-Seite ist bei keinem Kuenstler eingetragen: Der Treffer nach Namen gilt.
+            return httpx.Response(404, json={"error": "Not Found"})
         if host == "api.deezer.com" and path == "/artist/5/top":
             track = {"title": "Hit", "preview": "https://cdn.example.com/hit.mp3", "duration": 200, "album": {"title": "Record"}}
             return httpx.Response(200, json={"data": [track]})

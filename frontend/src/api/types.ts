@@ -78,6 +78,10 @@ export type ArtistItem = {
   image: string
   in_library: boolean
   reasons?: string[]
+  /** Nur aus der Suche: Land und Beschreibung aus MusicBrainz, und ob ein anderer Treffer gleich heisst. */
+  country?: string
+  disambiguation?: string
+  namesakes?: boolean
 }
 
 export type AlbumItem = {

@@ -9,6 +9,13 @@ Identitaet.
 als ``/api/images/artist/<mbid>``. Der Browser laedt sie erst, wenn die Karte
 sichtbar wird, und erst dann sucht nexbeat bei Deezer. Sonst hinge der Aufbau
 einer Seite an Dutzenden Bildsuchen.
+
+Foto und Top-Titel kommen von Deezer, das keine MusicBrainz-Kennungen kennt. 25.09.2026: Alle zwoelf
+Kuenstler namens Logic bekamen Foto und Top-Titel des bekanntesten, weil nexbeat nur nach dem Namen
+fragte. Seitdem gilt (``deezer_artist_for``): Fuehrt MusicBrainz beim Kuenstler einen Verweis auf seine
+Deezer-Seite, zaehlt nur der. Sonst ein Treffer nach Namen, aber nie einer, den MusicBrainz einem anderen
+Kuenstler zuordnet. Karten gleichnamiger Kuenstler in der Suche bekommen einen Treffer nach Namen nur, wenn
+MusicBrainz ihn genau diesem Kuenstler zuordnet.
 """
 
 from __future__ import annotations
@@ -17,6 +24,7 @@ import asyncio
 import hashlib
 import logging
 import re
+from collections import Counter
 from collections.abc import Awaitable
 from datetime import timedelta
 from typing import Any
@@ -56,8 +64,13 @@ def valid_mbid(value: str) -> bool:
     return bool(MBID_PATTERN.match(value or ""))
 
 
-def artist_image_path(mbid: str, name: str) -> str:
-    return f"/api/images/artist/{mbid}?name={quote(name or '')}"
+def artist_image_path(mbid: str, name: str, *, namesakes: bool = False) -> str:
+    return f"/api/images/artist/{mbid}?name={quote(name or '')}" + ("&namesakes=1" if namesakes else "")
+
+
+def artist_key(mbid: str) -> str:
+    # "v2" seit 26.09.2026: mit dem Verweis auf die Deezer-Seite aus MusicBrainz. Aeltere Eintraege hatten ihn nicht.
+    return f"mb:artist:v2:{mbid}"
 
 
 def similar_key(mbid: str) -> str:
@@ -129,19 +142,70 @@ def deezer_match_key(mbid: str, name: str) -> str:
     return f"dz:artist:{mbid}:{digest}"
 
 
-async def resolve_artist_image(db: Session, settings: AppSettings, mbid: str, name: str) -> str | None:
-    """Adresse des Kuenstlerbilds. ``""`` heisst: gibt es nicht. ``None``: Deezer hat gerade abgelehnt."""
+async def resolve_artist_image(
+    db: Session, settings: AppSettings, mbid: str, name: str, *, namesakes: bool = False
+) -> str | None:
+    """Adresse des Kuenstlerbilds. ``""`` heisst: gibt es nicht. ``None``: eine Quelle hat gerade abgelehnt.
+
+    ⚠️ Die Adresse ist ohne Anmeldung erreichbar. Die Stammdaten aus MusicBrainz werden deshalb nur gelesen,
+    nie abgefragt: Liegen sie vor, weil jemand angemeldet die Kuenstlerseite oeffnete, zaehlt der Verweis
+    darin. Nach MusicBrainz fragt diese Adresse hoechstens, wem ein Deezer-Treffer gehoert, einmal je Treffer,
+    und das nur fuer Stammdaten ohne Verweis und fuer gleichnamige Kuenstler der Suche. Alle anderen Karten
+    (Startseite, Aehnliche, Genres) bleiben beim Treffer nach Namen: Je Karte MusicBrainz zu fragen, hielte bei
+    einer Anfrage je 1,1 Sekunden jede Seite minutenlang auf.
+    """
     row = db.get(LibraryArtist, mbid)
     if row is not None and row.image_url:
         return row.image_url
-    if not settings.flag("source_deezer") or not name:
+    if not settings.flag("source_deezer"):
         return ""
-    match = await optional(
-        cache.cached(db, deezer_match_key(mbid, name), TTL_DEEZER_MATCH, lambda: deezer.find_artist(name)), "deezer"
-    )
+    info = cache.read(db, artist_key(mbid))
+    if info is not None:
+        match = await optional(deezer_artist_for(db, mbid, info), "deezer")
+    elif name and namesakes:
+        match = await optional(_deezer_by_name(db, mbid, name, strict=True), "deezer")
+    elif name:
+        match = await optional(_deezer_artist(db, mbid, name), "deezer")
+    else:
+        return ""
     if match is None:
         return None
     return match.get("picture", "")
+
+
+async def _deezer_owners(db: Session, deezer_id: int) -> list[str]:
+    """Die Kuenstler, denen MusicBrainz diese Deezer-Seite zuordnet."""
+    return await cache.cached(
+        db, f"mb:url:dz:{deezer_id}", TTL_DEEZER_MATCH, lambda: musicbrainz.url_artists(deezer.artist_url(deezer_id))
+    )
+
+
+async def _deezer_by_name(db: Session, mbid: str, name: str, *, strict: bool) -> dict[str, Any]:
+    """Der Deezer-Treffer nach Namen, wenn er zu diesem Kuenstler passen kann.
+
+    Nie einer, den MusicBrainz einem anderen Kuenstler zuordnet. ``strict``: nur einer, den MusicBrainz genau
+    diesem Kuenstler zuordnet, fuer gleichnamige Kuenstler, bei denen der Name allein nichts entscheidet.
+    """
+    match = await _deezer_artist(db, mbid, name)
+    if not match.get("id"):
+        return {}
+    owners = await _deezer_owners(db, match["id"])
+    if mbid in owners or not (owners or strict):
+        return match
+    return {}
+
+
+async def deezer_artist_for(db: Session, mbid: str, info: dict[str, Any]) -> dict[str, Any]:
+    """Der Deezer-Kuenstler zu dieser MusicBrainz-Kennung, ``{}`` wenn keiner sicher passt."""
+
+    async def find() -> dict[str, Any]:
+        if info.get("deezer_id"):
+            return await deezer.artist(info["deezer_id"])
+        if not info.get("name"):
+            return {}
+        return await _deezer_by_name(db, mbid, info["name"], strict=False)
+
+    return await cache.cached(db, f"dz:mbid:{mbid}", TTL_DEEZER_MATCH, find)
 
 
 async def similar_for(db: Session, seeds: list[str]) -> dict[str, list[dict[str, Any]]]:
@@ -190,10 +254,14 @@ async def search_artists(db: Session, settings: AppSettings, query: str) -> list
         db, f"mb:search:artist:{text.casefold()}", TTL_SEARCH, lambda: musicbrainz.search_artists(text)
     )
     known = library_mbids(db, [item["mbid"] for item in results])
-    return [
-        {**item, "image": artist_image_path(item["mbid"], item["name"]), "in_library": item["mbid"] in known}
-        for item in results
-    ]
+    # Gleichnamige Kuenstler: Die Karte zeigt Land und Beschreibung, und ein Foto nur, wenn es sicher dieses ist.
+    names = Counter(deezer.normalize(item["name"]) for item in results)
+    rows = []
+    for item in results:
+        namesakes = names[deezer.normalize(item["name"])] > 1
+        image = artist_image_path(item["mbid"], item["name"], namesakes=namesakes)
+        rows.append({**item, "image": image, "in_library": item["mbid"] in known, "namesakes": namesakes})
+    return rows
 
 
 async def search_albums(db: Session, settings: AppSettings, user: User, query: str) -> list[dict[str, Any]]:
@@ -215,7 +283,7 @@ async def _deezer_artist(db: Session, mbid: str, name: str) -> dict[str, Any]:
 
 
 async def artist_info(db: Session, mbid: str) -> dict[str, Any]:
-    return await cache.cached(db, f"mb:artist:{mbid}", TTL_ARTIST, lambda: musicbrainz.artist(mbid))
+    return await cache.cached(db, artist_key(mbid), TTL_ARTIST, lambda: musicbrainz.artist(mbid))
 
 
 async def studio_albums(db: Session, mbid: str) -> list[dict[str, Any]]:
@@ -352,15 +420,14 @@ async def artist_similar(db: Session, settings: AppSettings, mbid: str) -> dict[
     }
 
 
-async def artist_top_tracks(db: Session, settings: AppSettings, mbid: str, name: str) -> dict[str, Any]:
-    """Beliebte Titel mit Hoerprobe laut Deezer. Der Name kommt aus den gespeicherten Stammdaten."""
+async def artist_top_tracks(db: Session, settings: AppSettings, mbid: str) -> dict[str, Any]:
+    """Beliebte Titel mit Hoerprobe laut Deezer, fuer genau diesen Kuenstler (``deezer_artist_for``).
+
+    Die Stammdaten liegen meist schon vor: Die Seite fragt die Top-Titel erst nach ihrem Kopf ab.
+    """
     if not settings.flag("source_deezer"):
         return {"tracks": []}
-    # Ein mitgeschickter Name zaehlt nur, solange MusicBrainz den Kuenstler noch nicht geliefert hat.
-    name = (cache.read(db, f"mb:artist:{mbid}") or {}).get("name") or name.strip()
-    if not name:
-        return {"tracks": []}
-    match = await _deezer_artist(db, mbid, name)
+    match = await deezer_artist_for(db, mbid, await artist_info(db, mbid))
     if not match.get("id"):
         return {"tracks": []}
     deezer_id = match["id"]
