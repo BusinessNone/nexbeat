@@ -83,7 +83,7 @@ describe('about nexbeat', () => {
   it('opens the window again from the page', async () => {
     vi.spyOn(api, 'get').mockResolvedValue(BASE)
     show(<AboutPage />, auth({ seen_version: latestVersion() }))
-    fireEvent.click(await screen.findByRole('button', { name: i18n.t('about.whatsNew', { version: latestVersion() }) }))
+    fireEvent.click(await screen.findByRole('button', { name: i18n.t('about.whatsNew', { version: latestVersion(BASE.version) }) }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })
@@ -103,7 +103,10 @@ describe('what is new after an update', () => {
   })
 
   it('shows admins their sections too', () => {
-    show(<WhatsNewAfterUpdate />, auth({ is_admin: true, seen_version: null }))
+    // 1.1.0 is the release with a section for admins; the newest one may have none.
+    const admin = auth({ is_admin: true, seen_version: null })
+    admin.config = { version: '1.1.0' } as AuthState['config']
+    show(<WhatsNewAfterUpdate />, admin)
     expect(screen.getByRole('dialog')).toHaveTextContent('GitHub')
   })
 
