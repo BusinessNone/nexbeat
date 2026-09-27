@@ -25,6 +25,23 @@
         "Lehnt nexcrate etwas ab, steht dessen eigene Begründung darunter.",
         "Nach dem Verbinden mit nexcrate ist der Bestand sofort da."
       ]
+    },
+    "1.1.1": {
+      "lead": "Zwei Reparaturen: Anfragen an eine langsame nexcrate, und Künstler gleichen Namens.",
+      "sections": [
+        {
+          "title": "Anfragen an eine langsame nexcrate",
+          "body": "Brauchte nexcrate länger als eine Minute, zeigte nexbeat Fehler 504, obwohl die Anfrage angekommen war, und schickte sie im Hintergrund ein zweites Mal. Jetzt übergibt nexbeat eine Anfrage im Hintergrund und schickt dieselbe nie zweimal gleichzeitig. Bis nexcrate sie angenommen hat, steht an der Anfrage „Wird übergeben“.",
+          "where": "Menü an deinem Namen › Meine Anfragen"
+        },
+        {
+          "title": "Künstler gleichen Namens",
+          "body": "Künstler gleichen Namens bekamen alle das Foto und die Top-Titel des bekanntesten. Beides kommt jetzt über den MusicBrainz-Eintrag des Künstlers, und die Suche unterscheidet Namensvettern nach Land und Beschreibung.",
+          "where": "Suche, und die Seite des Künstlers"
+        }
+      ],
+      "smallTitle": "Außerdem",
+      "small": []
     }
   }
 }

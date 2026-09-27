@@ -25,6 +25,23 @@
         "When nexcrate refuses something, its own reason is shown below.",
         "After connecting to nexcrate the library is there at once."
       ]
+    },
+    "1.1.1": {
+      "lead": "Two repairs: requests to a slow nexcrate, and artists who share a name.",
+      "sections": [
+        {
+          "title": "Requests to a slow nexcrate",
+          "body": "When nexcrate took longer than a minute to answer, nexbeat showed error 504 although the request had arrived, and sent it a second time in the background. nexbeat now hands a request over in the background and never sends the same one twice at once. Until nexcrate has taken it, the request says \"Handing over\".",
+          "where": "Menu at your name › My requests"
+        },
+        {
+          "title": "Artists who share a name",
+          "body": "Artists of the same name all got the photo and the top tracks of the best known one. Both now come by the artist's MusicBrainz entry, and search tells namesakes apart by country and description.",
+          "where": "Search, and the artist's page"
+        }
+      ],
+      "smallTitle": "Also",
+      "small": []
     }
   }
 }
