@@ -42,6 +42,32 @@
       ],
       "smallTitle": "Also",
       "small": []
+    },
+    "1.2.0": {
+      "lead": "nexbeat now has API tokens. With one, dashboards like nexdeck show your requests, and administrators approve requests right from the dashboard.",
+      "sections": [
+        {
+          "title": "API tokens",
+          "body": "In your profile you create tokens for scripts and dashboards. A token has exactly your rights; ticked “Read only” it can neither request nor change anything. It is shown once, sent as the header Authorization: Bearer … and can be revoked at any time.",
+          "where": "Menu at your name › Profile › API tokens"
+        },
+        {
+          "title": "nexbeat in nexdeck",
+          "body": "With a token nexdeck shows waiting, running and failed requests, the library and, for administrators, the requests to approve with buttons to approve and turn down. The buttons need the token of an administrator that may write.",
+          "where": "Menu at your name › Profile › API tokens"
+        },
+        {
+          "title": "Who has which tokens",
+          "body": "Under Users you see which accounts created tokens and when they were last used. Only its owner can revoke a token; deactivating an account locks its tokens too.",
+          "where": "Settings › Users",
+          "admin": true
+        }
+      ],
+      "smallTitle": "Also",
+      "small": [
+        "Changing your password leaves tokens working. Revoke the ones you no longer need in your profile.",
+        "The interface for your own scripts is under /api/v1 and described at /api/docs."
+      ]
     }
   }
 }

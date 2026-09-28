@@ -42,6 +42,32 @@
       ],
       "smallTitle": "Außerdem",
       "small": []
+    },
+    "1.2.0": {
+      "lead": "nexbeat hat jetzt API-Token. Damit zeigen Dashboards wie nexdeck deine Anfragen an, und Admins geben Anfragen direkt vom Dashboard aus frei.",
+      "sections": [
+        {
+          "title": "API-Token",
+          "body": "Im Profil legst du Token für Skripte und Dashboards an. Ein Token hat genau deine Rechte, mit „Darf nur lesen“ kann er nichts anfragen und nichts ändern. Er wird nur einmal angezeigt, als Kopfzeile Authorization: Bearer … mitgeschickt und lässt sich jederzeit widerrufen.",
+          "where": "Menü an deinem Namen › Profil › API-Token"
+        },
+        {
+          "title": "nexbeat in nexdeck",
+          "body": "nexdeck zeigt mit einem Token wartende, laufende und fehlgeschlagene Anfragen, die Bibliothek und, für Admins, die Anfragen zur Freigabe samt Knöpfen zum Freigeben und Ablehnen. Für die Knöpfe braucht es den Token eines Admins, der schreiben darf.",
+          "where": "Menü an deinem Namen › Profil › API-Token"
+        },
+        {
+          "title": "Wer welche Token hat",
+          "body": "Unter Benutzer steht, welche Konten Token angelegt haben und wann sie zuletzt benutzt wurden. Widerrufen kann ein Token nur sein Besitzer; ein stillgelegtes Konto sperrt seine Token mit.",
+          "where": "Einstellungen › Benutzer",
+          "admin": true
+        }
+      ],
+      "smallTitle": "Außerdem",
+      "small": [
+        "Ein Passwortwechsel lässt Token weiterlaufen. Nicht mehr gebrauchte widerrufst du im Profil.",
+        "Die Schnittstelle für eigene Skripte steht unter /api/v1 und ist unter /api/docs beschrieben."
+      ]
     }
   }
 }
