@@ -306,13 +306,43 @@
     "language": "Language",
     "languageDefault": "Installation default",
     "password": "Password",
-    "passwordIntro": "After the change, all other sessions end.",
+    "passwordIntro": "After the change, all other sessions end. API tokens keep working; you can revoke them below.",
     "currentPassword": "Current password",
     "newPassword": "New password",
     "changePassword": "Change password",
     "passwordChanged": "The new password is active.",
     "quota": "Quota",
     "quotaText": "{{used}} of {{limit}} requests used ({{period}}). Resets on {{date}}."
+  },
+  "apiKeys": {
+    "title": "API tokens",
+    "intro": "For scripts and dashboards like nexdeck that talk to nexbeat without a browser. A token has exactly your rights, no more. It is sent as the header Authorization: Bearer …. The interface is under /api/v1, described at /api/docs.",
+    "empty": "No token yet.",
+    "nameLabel": "What is it for?",
+    "nameHint": "For example “nexdeck in the hall” or “backup script”. Helps you later when revoking it.",
+    "readOnly": "Read only",
+    "readOnlyHint": "Can look things up, but cannot request, approve or change anything. Right for dashboards. To approve requests from a dashboard, an admin leaves this unticked.",
+    "create": "Create token",
+    "createdTitle": "Token created",
+    "onlyOnce": "Copy it now. This token is never shown again, and no admin can look it up. If you lose it, create a new one.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "howToUse": "Send it with every request like this:",
+    "done": "Done",
+    "lastUsed": "last used {{date}}",
+    "neverUsed": "never used",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke token",
+    "revokeText": "“{{name}}” stops working right away. Anything that uses it is locked out."
+  },
+  "adminApiKeys": {
+    "title": "API tokens in this installation",
+    "intro": "Who reaches nexbeat without a browser. Look, not revoke: only its owner can switch a token off. Deactivating an account locks its tokens too.",
+    "empty": "Nobody has created a token yet.",
+    "owner": "Account",
+    "name": "Token",
+    "created": "Created",
+    "lastUsed": "Last used"
   },
   "settings": {
     "title": "Settings",
@@ -530,7 +560,12 @@
       "nexcrate_title_gone": "nexcrate no longer has this. Was it removed there?",
       "nexcrate_not_watched": "nexcrate no longer watches this album. Was it taken back or frozen there?",
       "artist_albums_not_in_nexcrate": "nexcrate watches no studio album of this artist.",
-      "nexcrate_unavailable": "nexcrate cannot be reached right now: the address answers with a server error instead of nexcrate, usually the proxy in front of it. Is nexcrate running, or is it being restarted? nexbeat keeps trying on its own."
+      "nexcrate_unavailable": "nexcrate cannot be reached right now: the address answers with a server error instead of nexcrate, usually the proxy in front of it. Is nexcrate running, or is it being restarted? nexbeat keeps trying on its own.",
+      "api_key_read_only": "This API token may only read.",
+      "api_key_not_here": "This needs a sign-in in the browser, not an API token.",
+      "api_key_needs_name": "A token needs a name.",
+      "api_key_too_many": "An account can have at most 20 tokens.",
+      "api_key_not_found": "This token does not exist."
     }
   },
   "services": {

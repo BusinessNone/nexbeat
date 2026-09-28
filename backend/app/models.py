@@ -140,6 +140,28 @@ class RevokedSession(Base):
     expires_at: Mapped[datetime] = mapped_column(index=True)
 
 
+class ApiKey(Base):
+    """Persoenlicher API-Token fuer Skripte und Dashboards, wie in Nexview.
+
+    Ein Token erbt die Rechte seines Kontos, mit ``read_only`` darf er nur lesen. Gespeichert wird
+    nur die Pruefsumme; den Klartext gibt es genau einmal, in der Antwort aufs Anlegen.
+    """
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    # Der Anfang des Klartexts, zum Wiedererkennen in der Liste.
+    preview: Mapped[str] = mapped_column(String(16))
+    read_only: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    last_used_at: Mapped[datetime | None] = mapped_column(default=None)
+
+    user: Mapped[User] = relationship()
+
+
 class Setting(Base):
     __tablename__ = "settings"
 

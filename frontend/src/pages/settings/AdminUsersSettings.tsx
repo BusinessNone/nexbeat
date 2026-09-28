@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Button, Card, ErrorBanner, Field, OkBanner, PageLoading, SELECT_CLASS, Toggle } from '../../components/ui'
 import { formatDate } from '../../lib/format'
 import { useTarget } from '../../lib/target'
+import { AdminApiKeys } from './AdminApiKeys'
 
 type QuotaMode = 'default' | 'unlimited' | 'custom'
 
@@ -279,6 +280,8 @@ export function AdminUsersSettings() {
         onCancel={() => setDeleting(null)}
         onConfirm={() => deleting && remove.mutate(deleting.id)}
       />
+
+      <AdminApiKeys />
     </div>
   )
 }

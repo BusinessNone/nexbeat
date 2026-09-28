@@ -104,6 +104,32 @@ npm run dev
 
 Open http://localhost:5182 and create the first account.
 
+## API for scripts and dashboards
+
+Every account can create API tokens under **Profile > API tokens**. A token
+carries exactly the rights of its account; ticked as **read only** it may look
+things up and change nothing. The token is shown once, when it is created, and
+is sent with every request as a header:
+
+```
+Authorization: Bearer nxb_…
+```
+
+The promised interface is under `/api/v1` and described at `/api/docs`:
+
+- `GET /api/v1/me`: the account behind the token and what it may do (`may`:
+  `request`, `see_all`, `decide`). Build buttons on `may`, not on the role.
+- `GET /api/v1/dashboard`: requests by state and the size of the library in one
+  call. Administrators get the whole installation, everybody else their own
+  requests.
+- Search, request, withdraw, and for administrators list, approve and turn down
+  requests.
+
+[nexdeck](https://github.com/DerKezorm/nexdeck) uses it for its nexbeat cards.
+Administrators see every token of the installation under Settings > Users.
+Changing the password leaves tokens working; deactivating an account stops
+them.
+
 ## Data sources
 
 MusicBrainz, Cover Art Archive and ListenBrainz (open data). Artist images and

@@ -306,13 +306,43 @@
     "language": "Sprache",
     "languageDefault": "Vorgabe der Installation",
     "password": "Passwort",
-    "passwordIntro": "Nach dem Wechsel sind alle anderen Sitzungen beendet.",
+    "passwordIntro": "Nach dem Wechsel sind alle anderen Sitzungen beendet. API-Token gelten weiter, widerrufen kannst du sie unten.",
     "currentPassword": "Aktuelles Passwort",
     "newPassword": "Neues Passwort",
     "changePassword": "Passwort ändern",
     "passwordChanged": "Das neue Passwort gilt.",
     "quota": "Kontingent",
     "quotaText": "{{used}} von {{limit}} Anfragen genutzt ({{period}}). Neu ab {{date}}."
+  },
+  "apiKeys": {
+    "title": "API-Token",
+    "intro": "Für Skripte und Dashboards wie nexdeck, die nexbeat ohne Browser ansprechen. Ein Token hat genau deine Rechte, nicht mehr. Er wird als Kopfzeile Authorization: Bearer … mitgeschickt. Die Schnittstelle steht unter /api/v1, beschrieben unter /api/docs.",
+    "empty": "Noch kein Token angelegt.",
+    "nameLabel": "Wofür ist er?",
+    "nameHint": "Zum Beispiel „nexdeck im Flur“ oder „Sicherungsskript“. Hilft dir später beim Widerrufen.",
+    "readOnly": "Darf nur lesen",
+    "readOnlyHint": "Kann abfragen, aber nichts anfragen, freigeben oder ändern. Richtig für Dashboards. Wer im Dashboard Anfragen freigeben will, nimmt den Haken als Admin heraus.",
+    "create": "Token anlegen",
+    "createdTitle": "Token angelegt",
+    "onlyOnce": "Jetzt kopieren. Dieser Token wird nie wieder angezeigt, auch ein Admin kann ihn nicht nachschlagen. Verlierst du ihn, legst du einen neuen an.",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "howToUse": "So wird er bei jeder Anfrage mitgeschickt:",
+    "done": "Fertig",
+    "lastUsed": "zuletzt {{date}}",
+    "neverUsed": "nie benutzt",
+    "revoke": "Widerrufen",
+    "revokeTitle": "Token widerrufen",
+    "revokeText": "„{{name}}“ funktioniert ab sofort nicht mehr. Alles, was ihn benutzt, bleibt draußen."
+  },
+  "adminApiKeys": {
+    "title": "API-Token in dieser Installation",
+    "intro": "Wer ohne Browser auf nexbeat zugreift. Ansehen, nicht widerrufen: Einen Token schaltet nur sein Besitzer ab. Wird ein Konto stillgelegt, sperren seine Token mit.",
+    "empty": "Niemand hat bisher einen Token angelegt.",
+    "owner": "Konto",
+    "name": "Token",
+    "created": "Angelegt",
+    "lastUsed": "Zuletzt benutzt"
   },
   "settings": {
     "title": "Einstellungen",
@@ -530,7 +560,12 @@
       "nexcrate_title_gone": "nexcrate führt das nicht mehr. Wurde es dort entfernt?",
       "nexcrate_not_watched": "nexcrate überwacht dieses Album nicht mehr. Wurde es dort zurückgenommen oder eingefroren?",
       "artist_albums_not_in_nexcrate": "nexcrate überwacht zu diesem Künstler kein Studioalbum.",
-      "nexcrate_unavailable": "nexcrate ist gerade nicht erreichbar: Unter der Adresse antwortet ein Serverfehler statt nexcrate, meist der Proxy davor. Läuft nexcrate, oder wird es gerade neu gestartet? nexbeat versucht es von selbst weiter."
+      "nexcrate_unavailable": "nexcrate ist gerade nicht erreichbar: Unter der Adresse antwortet ein Serverfehler statt nexcrate, meist der Proxy davor. Läuft nexcrate, oder wird es gerade neu gestartet? nexbeat versucht es von selbst weiter.",
+      "api_key_read_only": "Dieser API-Token darf nur lesen.",
+      "api_key_not_here": "Das geht nur angemeldet im Browser, nicht mit einem API-Token.",
+      "api_key_needs_name": "Ein Token braucht einen Namen.",
+      "api_key_too_many": "Mehr als 20 Token je Konto gehen nicht.",
+      "api_key_not_found": "Diesen Token gibt es nicht."
     }
   },
   "services": {

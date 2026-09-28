@@ -9,6 +9,7 @@ import { useAuth } from '../auth/useAuth'
 import { Button, ErrorBanner, Field, OkBanner, PageTitle, Section, SELECT_CLASS } from '../components/ui'
 import { changeLanguage, isLanguage } from '../i18n'
 import { formatDate } from '../lib/format'
+import { ApiKeysSection } from './profile/ApiKeysSection'
 
 export function ProfilePage() {
   const { t, i18n } = useTranslation()
@@ -119,6 +120,8 @@ export function ProfilePage() {
         </p>
         {user.requires_approval && <p className="text-sm text-warn-500">{t('request.needsApproval')}</p>}
       </Section>
+
+      <ApiKeysSection />
     </div>
   )
 }

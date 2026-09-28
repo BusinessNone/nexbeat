@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from ..deps import CurrentUser, DbSession
+from ..deps import CurrentUser, DbSession, SessionUser
 from ..meldungen import fehler, meldung
 from ..models import User, utcnow
 from ..schemas import LoginIn, MeOut, MeUpdate, PasswordChangeIn, TokenPair, UserOut
@@ -127,7 +127,7 @@ def update_me(payload: MeUpdate, user: CurrentUser, db: DbSession) -> MeOut:
 
 @router.post("/me/password", response_model=TokenPair, summary="Change the password and end other sessions")
 def change_password(
-    payload: PasswordChangeIn, request: Request, response: Response, user: CurrentUser, db: DbSession
+    payload: PasswordChangeIn, request: Request, response: Response, user: SessionUser, db: DbSession
 ) -> TokenPair:
     # 12.09.2026: Ohne Bremse liess sich hier mit einer fremden Sitzung das Passwort raten.
     key = anmeldebremse.password_change_key(user.id)

@@ -18,7 +18,7 @@ from .config import get_settings
 from .db import SessionLocal, init_db
 from .meldungen import meldung
 from .middleware import RequestIdMiddleware, configure_logging
-from .routers import about, auth, catalog, discover, health, onboarding, requests, setup, users, webhooks
+from .routers import about, api_keys, auth, catalog, discover, health, onboarding, requests, setup, users, v1, webhooks
 from .routers import settings as settings_router
 from .services import http
 from .services.settings_service import ensure_webhook_secret
@@ -79,7 +79,9 @@ async def _unexpected_error(request: Request, _exc: Exception) -> JSONResponse:
     )
 
 
-for module in (health, setup, auth, onboarding, users, settings_router, catalog, discover, requests, webhooks, about):
+for module in (
+    health, setup, auth, api_keys, onboarding, users, settings_router, catalog, discover, requests, webhooks, about, v1
+):
     app.include_router(module.router)
 
 
