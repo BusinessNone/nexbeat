@@ -134,3 +134,34 @@ def decode_device_token(token: str) -> tuple[int, str] | None:
 
 def access_token_expires_in() -> int:
     return get_settings().access_token_minutes * 60
+
+
+@dataclass(frozen=True)
+class OidcFlow:
+    state: str
+    nonce: str
+    verifier: str
+
+
+def create_oidc_flow_token(flow: OidcFlow, minutes: int = 10) -> str:
+    """Was der Browser zwischen Hin- und Rueckweg beim Anmeldedienst mitnimmt. Art ``oidc``, oeffnet keine Sitzung."""
+    now = datetime.now(UTC)
+    payload: dict[str, Any] = {
+        "type": "oidc",
+        "state": flow.state,
+        "nonce": flow.nonce,
+        "ver": flow.verifier,
+        "exp": int((now + timedelta(minutes=minutes)).timestamp()),
+    }
+    return jwt.encode(payload, _signing_key(), algorithm=ALGORITHM)
+
+
+def decode_oidc_flow_token(token: str) -> OidcFlow | None:
+    try:
+        payload = jwt.decode(token, _signing_key(), algorithms=[ALGORITHM])
+    except jwt.PyJWTError:
+        return None
+    values = (payload.get("state"), payload.get("nonce"), payload.get("ver"))
+    if payload.get("type") != "oidc" or not all(isinstance(value, str) and value for value in values):
+        return None
+    return OidcFlow(state=values[0], nonce=values[1], verifier=values[2])  # type: ignore[arg-type]

@@ -50,7 +50,22 @@
     "nameLabel": "Username or email",
     "passwordLabel": "Password",
     "submit": "Sign in",
-    "forgot": "Forgot your password?"
+    "forgot": "Forgot your password?",
+    "ssoButton": "Sign in with {{name}}",
+    "ssoOr": "or",
+    "sso": {
+      "sso_disabled": "Single sign-on is not available right now.",
+      "sso_failed": "Sign-in did not work. Try again.",
+      "sso_denied": "The sign-in was cancelled.",
+      "sso_unavailable": "The sign-in service could not be reached. Try again later.",
+      "sso_issuer_multitenant": "The sign-in service is set up for every tenant, which nexbeat does not accept. Ask your administrator.",
+      "sso_issuer_mismatch": "The sign-in service does not match its settings. Ask your administrator.",
+      "sso_domain_not_allowed": "This email address is not allowed to use nexbeat.",
+      "sso_no_account": "There is no nexbeat account for this address yet. Ask your administrator for an invitation.",
+      "sso_account_disabled": "This account is switched off.",
+      "sso_email_missing": "The sign-in service sent no email address.",
+      "sso_email_unverified": "The sign-in service says this email address is not verified."
+    }
   },
   "setup": {
     "title": "Welcome to nexbeat",
@@ -353,7 +368,8 @@
     "tabAddress": "Address",
     "tabMail": "Mail",
     "tabLidarr": "Target",
-    "tabSources": "Sources"
+    "tabSources": "Sources",
+    "tabSso": "Single sign-on"
   },
   "address": {
     "title": "Address and language",
@@ -565,7 +581,11 @@
       "api_key_not_here": "This needs a sign-in in the browser, not an API token.",
       "api_key_needs_name": "A token needs a name.",
       "api_key_too_many": "An account can have at most 20 tokens.",
-      "api_key_not_found": "This token does not exist."
+      "api_key_not_found": "This token does not exist.",
+      "oidc_issuer_missing": "Enter the issuer address first.",
+      "sso_unavailable": "The sign-in service could not be reached.",
+      "sso_issuer_multitenant": "Multi-tenant issuers (common, organizations) are not accepted. Use the address with your tenant ID.",
+      "sso_issuer_mismatch": "The service reports a different issuer than the one entered."
     }
   },
   "services": {
@@ -667,5 +687,26 @@
   "whatsNew": {
     "title": "What is new · {{version}}",
     "gotIt": "Got it"
+  },
+  "sso": {
+    "title": "Single sign-on (OIDC)",
+    "intro": "Let people sign in with your company account, for example Microsoft Entra. Anyone from an allowed domain gets an account on first sign-in. Passwords keep working next to it.",
+    "enabled": "Allow sign-in with OIDC",
+    "enabledHint": "The button only appears once issuer, client ID, secret and at least one domain are set.",
+    "name": "Button text",
+    "nameHint": "Shown as \"Sign in with …\".",
+    "issuer": "Issuer address",
+    "issuerHint": "Entra: https://login.microsoftonline.com/<tenant ID>/v2.0. Use your own tenant ID, not \"common\".",
+    "clientId": "Application (client) ID",
+    "clientSecret": "Client secret",
+    "domains": "Allowed email domains",
+    "domainsHint": "One or more, separated by commas, for example example.com. Only these addresses may sign in.",
+    "autoCreate": "Create accounts automatically",
+    "autoCreateHint": "On: anyone from an allowed domain gets an account (role user, default quota) on first sign-in. Off: only people who already have an account or invitation can use it.",
+    "redirectUri": "Redirect URI",
+    "redirectUriHint": "Enter this exactly in the app registration. Behind a reverse proxy, set the public address under System first.",
+    "test": "Check issuer",
+    "testOk": "The sign-in service answers.",
+    "notReady": "Saved, but the button stays hidden until issuer, client ID, secret and a domain are filled in."
   }
 }

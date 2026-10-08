@@ -7,6 +7,7 @@ Oberflaeche zurueckkommt, ueberschreibt das echte Geheimnis nie.
 
 from __future__ import annotations
 
+import re
 import secrets
 from dataclasses import dataclass
 from typing import Any
@@ -54,6 +55,15 @@ DEFAULTS: dict[str, str] = {
     "quota_period": "week",
     # Einmal am Tag bei GitHub nach einer neueren Fassung fragen. Ab Werk an, abschaltbar auf "Ueber nexbeat".
     "update_check": "true",
+    # Anmeldung ueber einen OIDC-Dienst (Entra, Keycloak, Google ...). Konten aus den erlaubten Domaenen
+    # entstehen beim ersten Anmelden von selbst.
+    "oidc_enabled": "false",
+    "oidc_name": "Microsoft",
+    "oidc_issuer": "",
+    "oidc_client_id": "",
+    "oidc_client_secret": "",
+    "oidc_allowed_domains": "",
+    "oidc_auto_create": "true",
 }
 
 SECRET_KEYS = frozenset(
@@ -65,9 +75,12 @@ SECRET_KEYS = frozenset(
         "webhook_secret",
         "nexcrate_api_key",
         "nexcrate_pairing",
+        "oidc_client_secret",
     }
 )
-BOOL_KEYS = frozenset({"lidarr_dry_run", "source_listenbrainz", "source_deezer", "update_check"})
+BOOL_KEYS = frozenset(
+    {"lidarr_dry_run", "source_listenbrainz", "source_deezer", "update_check", "oidc_enabled", "oidc_auto_create"}
+)
 INT_KEYS = frozenset({"smtp_port", "lidarr_quality_profile_id", "lidarr_metadata_profile_id", "quota_default_limit"})
 CHOICES: dict[str, tuple[str, ...]] = {
     "smtp_security": SECURITY_MODES,
@@ -79,6 +92,21 @@ CHOICES: dict[str, tuple[str, ...]] = {
 INTERNAL_KEYS = frozenset({"webhook_secret", "nexcrate_pairing", "nexcrate_marker", "request_mode_changed_at"})
 
 _CACHE_KEY = "nexbeat_settings"
+_DOMAIN = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
+
+
+def normalize_domains(raw: str) -> str:
+    """Domaenen getrennt durch Komma, Leerzeichen oder Zeilenumbruch, klein, ohne fuehrendes ``@``."""
+    domains: list[str] = []
+    for part in re.split(r"[,;\s]+", raw.lower()):
+        part = part.strip().lstrip("@")
+        if not part:
+            continue
+        if not _DOMAIN.match(part):
+            raise SettingsError("invalid_setting", "oidc_allowed_domains")
+        if part not in domains:
+            domains.append(part)
+    return ",".join(domains)
 
 
 class SettingsError(Exception):
@@ -166,6 +194,21 @@ class AppSettings:
         return {"arr": "lidarr", "nex": "nexcrate"}.get(self.mode or "")
 
     @property
+    def oidc_domains(self) -> list[str]:
+        return [domain for domain in self.text("oidc_allowed_domains").split(",") if domain]
+
+    @property
+    def oidc_ready(self) -> bool:
+        """An und vollstaendig. Ohne erlaubte Domaene bliebe das Anmelden fuer jeden offen oder fuer keinen."""
+        return (
+            self.flag("oidc_enabled")
+            and bool(self.text("oidc_issuer"))
+            and bool(self.text("oidc_client_id"))
+            and bool(self.text("oidc_client_secret"))
+            and bool(self.oidc_domains)
+        )
+
+    @property
     def quota_default_limit(self) -> int | None:
         value = self.number("quota_default_limit")
         return None if value is None or value < 0 else value
@@ -208,7 +251,9 @@ def _normalize(key: str, raw: Any) -> str:
         return str(int(value))
     if key in CHOICES and value not in CHOICES[key]:
         raise SettingsError("invalid_setting", key)
-    if key in ("public_url", "lidarr_url", "nexcrate_url"):
+    if key == "oidc_allowed_domains":
+        return normalize_domains(value)
+    if key in ("public_url", "lidarr_url", "nexcrate_url", "oidc_issuer"):
         if value and not value.startswith(("http://", "https://")):
             raise SettingsError("invalid_setting", key)
         return value.rstrip("/")

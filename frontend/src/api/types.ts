@@ -47,6 +47,8 @@ export type AppConfig = {
   default_language: 'de' | 'en'
   previews_enabled: boolean
   requests_enabled: boolean
+  oidc_enabled: boolean
+  oidc_name: string
 }
 
 export type RequestStatus =
@@ -288,6 +290,14 @@ export type AppSettings = {
   listenbrainz_token_set: boolean
   quota_default_limit: number | null
   quota_period: 'day' | 'week' | 'month'
+  oidc_enabled: boolean
+  oidc_name: string
+  oidc_issuer: string
+  oidc_client_id: string
+  oidc_client_secret: string
+  oidc_client_secret_set: boolean
+  oidc_allowed_domains: string
+  oidc_auto_create: boolean
 }
 
 /** Ein Metadatenprofil mit dem, was es zulaesst, in Lidarrs Namen. */

@@ -28,4 +28,6 @@ def public_config(db: DbSession) -> dict[str, Any]:
         "default_language": settings.default_language,
         "previews_enabled": settings.flag("source_deezer"),
         "requests_enabled": settings.requests_ready,
+        "oidc_enabled": settings.oidc_ready,
+        "oidc_name": settings.text("oidc_name"),
     }

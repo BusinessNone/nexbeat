@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { errorMessage } from '../api/client'
 import { useAuth } from '../auth/useAuth'
@@ -15,6 +15,10 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [params] = useSearchParams()
+  // Der Server schickt Fehler der Anmeldung ueber OIDC als Kennung in der Adresse zurueck.
+  const ssoCode = params.get('sso_error')
+  const ssoError = ssoCode && /^sso_[a-z_]+$/.test(ssoCode) ? t(`login.sso.${ssoCode}`, { defaultValue: t('login.sso.sso_failed') }) : null
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -52,10 +56,23 @@ export function LoginPage() {
             autoComplete="current-password"
             required
           />
-          {error && <ErrorBanner message={error} />}
+          {(error || ssoError) && <ErrorBanner message={error ?? ssoError ?? ''} />}
           <Button type="submit" loading={busy} className="mt-1 w-full">
             {t('login.submit')}
           </Button>
+          {config?.oidc_enabled && (
+            <>
+              <div className="flex items-center gap-3 text-xs text-mist-600" aria-hidden="true">
+                <span className="h-px flex-1 bg-mist-800" />
+                {t('login.ssoOr')}
+                <span className="h-px flex-1 bg-mist-800" />
+              </div>
+              {/* Ein Seitenaufruf, kein API-Aufruf: Der Browser geht zum Anmeldedienst und kommt mit dem Cookie zurueck. */}
+              <Button type="button" variant="ghost" className="w-full" onClick={() => window.location.assign('/api/auth/oidc/login')}>
+                {t('login.ssoButton', { name: config.oidc_name })}
+              </Button>
+            </>
+          )}
           {config?.mail_configured && (
             <Link
               to="/passwort-vergessen"
