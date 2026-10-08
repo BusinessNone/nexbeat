@@ -23,6 +23,7 @@ from ..services import (
     mail_templates,
     nexcrate,
     nexcrate_events,
+    oidc,
     poller,
 )
 from ..services.lidarr import LidarrError
@@ -96,6 +97,22 @@ def remove_secret(key: str, _admin: AdminUser, db: DbSession) -> dict[str, Any]:
     if key == "nexcrate_api_key" and settings.mode == "nex":
         _changed_target(db)
     return public_settings(settings)
+
+
+class OidcTestIn(BaseModel):
+    issuer: str | None = Field(default=None, max_length=255)
+
+
+@router.post("/test/oidc", summary="Check that the sign-in service answers, with the saved or an unsaved issuer")
+async def test_oidc(payload: OidcTestIn, _admin: AdminUser, db: DbSession) -> dict[str, bool]:
+    issuer = (payload.issuer or load_settings(db).text("oidc_issuer")).strip().rstrip("/")
+    if not issuer.startswith(("http://", "https://")):
+        raise fehler("oidc_issuer_missing", "Enter the issuer address first.", 422)
+    try:
+        await oidc.discover(issuer)
+    except oidc.OidcError as error:
+        raise fehler(error.code, "The sign-in service could not be reached or does not fit.", 502) from error
+    return {"ok": True}
 
 
 class SmtpTestIn(BaseModel):

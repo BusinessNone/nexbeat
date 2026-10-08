@@ -50,7 +50,22 @@
     "nameLabel": "Benutzername oder E-Mail",
     "passwordLabel": "Passwort",
     "submit": "Anmelden",
-    "forgot": "Passwort vergessen?"
+    "forgot": "Passwort vergessen?",
+    "ssoButton": "Mit {{name}} anmelden",
+    "ssoOr": "oder",
+    "sso": {
+      "sso_disabled": "Die Einmalanmeldung ist gerade nicht verfügbar.",
+      "sso_failed": "Die Anmeldung hat nicht geklappt. Versuche es noch einmal.",
+      "sso_denied": "Die Anmeldung wurde abgebrochen.",
+      "sso_unavailable": "Der Anmeldedienst ist nicht erreichbar. Versuche es später noch einmal.",
+      "sso_issuer_multitenant": "Der Anmeldedienst ist für alle Mandanten eingerichtet, das nimmt nexbeat nicht an. Frage deinen Administrator.",
+      "sso_issuer_mismatch": "Der Anmeldedienst passt nicht zu seinen Einstellungen. Frage deinen Administrator.",
+      "sso_domain_not_allowed": "Diese E-Mail-Adresse darf nexbeat nicht benutzen.",
+      "sso_no_account": "Für diese Adresse gibt es noch kein nexbeat-Konto. Bitte deinen Administrator um eine Einladung.",
+      "sso_account_disabled": "Dieses Konto ist abgeschaltet.",
+      "sso_email_missing": "Der Anmeldedienst hat keine E-Mail-Adresse geschickt.",
+      "sso_email_unverified": "Der Anmeldedienst meldet diese E-Mail-Adresse als nicht bestätigt."
+    }
   },
   "setup": {
     "title": "Willkommen bei nexbeat",
@@ -353,7 +368,8 @@
     "tabAddress": "Adresse",
     "tabMail": "Mail",
     "tabLidarr": "Ziel",
-    "tabSources": "Quellen"
+    "tabSources": "Quellen",
+    "tabSso": "Einmalanmeldung"
   },
   "address": {
     "title": "Adresse und Sprache",
@@ -565,7 +581,11 @@
       "api_key_not_here": "Das geht nur angemeldet im Browser, nicht mit einem API-Token.",
       "api_key_needs_name": "Ein Token braucht einen Namen.",
       "api_key_too_many": "Mehr als 20 Token je Konto gehen nicht.",
-      "api_key_not_found": "Diesen Token gibt es nicht."
+      "api_key_not_found": "Diesen Token gibt es nicht.",
+      "oidc_issuer_missing": "Trage zuerst die Adresse des Ausstellers ein.",
+      "sso_unavailable": "Der Anmeldedienst ist nicht erreichbar.",
+      "sso_issuer_multitenant": "Aussteller für mehrere Mandanten (common, organizations) werden nicht angenommen. Nimm die Adresse mit deiner Mandanten-ID.",
+      "sso_issuer_mismatch": "Der Dienst meldet einen anderen Aussteller als den eingetragenen."
     }
   },
   "services": {
@@ -667,5 +687,26 @@
   "whatsNew": {
     "title": "Was ist neu · {{version}}",
     "gotIt": "Verstanden"
+  },
+  "sso": {
+    "title": "Einmalanmeldung (OIDC)",
+    "intro": "Lass Leute sich mit dem Firmenkonto anmelden, zum Beispiel Microsoft Entra. Wer aus einer erlaubten Domäne kommt, bekommt bei der ersten Anmeldung ein Konto. Passwörter funktionieren daneben weiter.",
+    "enabled": "Anmeldung mit OIDC erlauben",
+    "enabledHint": "Die Schaltfläche erscheint erst, wenn Aussteller, Client-ID, Geheimnis und mindestens eine Domäne eingetragen sind.",
+    "name": "Text der Schaltfläche",
+    "nameHint": "Erscheint als \"Mit … anmelden\".",
+    "issuer": "Adresse des Ausstellers",
+    "issuerHint": "Entra: https://login.microsoftonline.com/<Mandanten-ID>/v2.0. Nimm die ID deines eigenen Mandanten, nicht \"common\".",
+    "clientId": "Anwendungs-ID (Client-ID)",
+    "clientSecret": "Client-Geheimnis",
+    "domains": "Erlaubte E-Mail-Domänen",
+    "domainsHint": "Eine oder mehrere, durch Komma getrennt, zum Beispiel example.com. Nur diese Adressen dürfen sich anmelden.",
+    "autoCreate": "Konten automatisch anlegen",
+    "autoCreateHint": "An: Wer aus einer erlaubten Domäne kommt, bekommt bei der ersten Anmeldung ein Konto (Rolle Benutzer, Standardkontingent). Aus: Nur wer schon ein Konto oder eine Einladung hat, kann sich so anmelden.",
+    "redirectUri": "Weiterleitungs-URI",
+    "redirectUriHint": "Trage sie genau so in der App-Registrierung ein. Hinter einem Reverse-Proxy zuerst unter System die öffentliche Adresse eintragen.",
+    "test": "Aussteller prüfen",
+    "testOk": "Der Anmeldedienst antwortet.",
+    "notReady": "Gespeichert, aber die Schaltfläche bleibt verborgen, bis Aussteller, Client-ID, Geheimnis und eine Domäne eingetragen sind."
   }
 }

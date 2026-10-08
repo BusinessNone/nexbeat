@@ -104,6 +104,28 @@ npm run dev
 
 Open http://localhost:5182 and create the first account.
 
+## Single sign-on (OIDC)
+
+Optional. Under **Settings > System > Single sign-on** an administrator can let people sign in with a
+company account (Microsoft Entra, Keycloak, Google, any OpenID Connect provider). Passwords keep working.
+
+- Anyone whose email is in one of the **allowed domains** gets an account on first sign-in (role user,
+  default quota). Switch "Create accounts automatically" off to admit only people who already have an
+  account or invitation.
+- The sign-in is matched by the provider's `sub`, not by email. An existing account with the same
+  address is linked once.
+- Authorization code flow with PKCE, `state` and `nonce`; the ID token is checked for signature, issuer,
+  audience and expiry. The client secret is stored encrypted like the other secrets.
+- Deactivating an account in nexbeat stops its sessions and blocks the next sign-in; removing a domain
+  blocks everyone from it.
+
+**Entra setup:** register an app (single tenant), add a *Web* redirect URI shown on the settings page
+(`https://<your nexbeat>/api/auth/oidc/callback`), create a client secret, and enter
+`https://login.microsoftonline.com/<tenant ID>/v2.0` as issuer. Multi-tenant issuers (`common`,
+`organizations`) are refused. Add the optional `email` claim to the ID token, or nexbeat falls back to
+`preferred_username`. Behind a reverse proxy, set the public address under **System** first so the redirect
+URI is right.
+
 ## API for scripts and dashboards
 
 Every account can create API tokens under **Profile > API tokens**. A token
